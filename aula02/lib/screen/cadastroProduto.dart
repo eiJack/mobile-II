@@ -7,48 +7,112 @@ import 'package:aula02/widgets/seletor_imagem.dart';
 import 'dart:io';
 
 class cadastroProduto extends StatefulWidget {
-  const cadastroProduto({super.key});
+  final Produto? produto;
+  const cadastroProduto({super.key, this.produto});
 
   @override
   State<cadastroProduto> createState() => _cadastroProdutoState();
 }
 
 class _cadastroProdutoState extends State<cadastroProduto> {
-  File? _imagemAtual;
+  final _formkey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _categoriaController = TextEditingController();
   final _codigoBarrasController = TextEditingController();
-  final _service = ProdutosService();
+  final _marcaController = TextEditingController();
+  final _service = ProdutosService(); //chama api
+
+  int _categoriaSelecionada = 1;
+  int _status = 1;
+  bool _carregando = false;
+  File? _imagemSelecionada;
+  String? _imagemExistente;
+
+  @override
+  void initState() {
+    // inicia campos com um produto ja existente
+    //onde se nao tiver sido selecionado nenhum produto (visto pelos !) é um cadastro novo e nao atualizacao
+    super.initState();
+    if (widget.produto != null) {
+      _nomeController.text = widget.produto!.nome;
+      _descricaoController.text = widget.produto!.descricao;
+      _marcaController.text = widget.produto!.marca;
+      _codigoBarrasController.text = widget.produto!.codigoBarras;
+      _imagemExistente = widget.produto!.imagem;
+      _imagemSelecionada = widget.produto!.imagem.isNotEmpty
+          ? File(widget.produto!.imagem)
+          : null;
+      _categoriaSelecionada = widget.produto!.categoria;
+      _status = widget.produto!.status;
+    }
+  }
 
   void dispose() {
     _nomeController.dispose();
     _descricaoController.dispose();
+    _marcaController.dispose();
     _categoriaController.dispose();
+    _codigoBarrasController.dispose();
     super.dispose();
   }
 
-  final _sevice = ProdutosService();
-  //-------------------------------------------------------------
+  //-----------Funcao cadastrar-------------------------
   void _cadastrarProduto() async {
+    setState(() => _carregando = true);
     String token = await SessionService().obterToken();
-    int idCategoria = int.tryParse(_categoriaController.text) ?? 0;
-    Produto produto = Produto(
-      nome: _nomeController.text,
-      codigoBarras: _codigoBarrasController.text,
-      categoria: idCategoria,
-      marca: _nomeController.text,
-      imagem: _imagemAtual != null ? _imagemAtual!.path : '',
-      status: 0,
-    );
 
-    final resultado = await _service.cadastrarProduto(token, produto);
+    try {
+      Produto produto = Produto(
+        id: widget.produto?.id ?? 0,
+        nome: _nomeController.text,
+        descricao: _descricaoController.text,
+        categoria: _categoriaSelecionada,
+        codigoBarras: _codigoBarrasController.text,
+        marca: _nomeController.text,
+        imagem: _imagemSelecionada != null ? _imagemSelecionada!.path : '',
+        status: _status,
+      );
+      String resultado;
 
-    if (!mounted) return;
+      //validacao - se result null, cadastra novo produto, se for ja preenchido previamente só atualiza
+      if (widget.produto == null) {
+        resultado = await _service.cadastrarProdutoComImagem(
+          token: token,
+          produto: produto,
+          imagemFile: _imagemSelecionada,
+        );
+      } else {
+        resultado = await _service.atualizarProdutoComImagem(
+          token: token,
+          id: widget.produto!.id,
+          produto: produto,
+          imagemFile: _imagemSelecionada,
+        );
+      }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(resultado)));
+      setState(() => _carregando = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(resultado),
+            backgroundColor: resultado.contains('sucesso')
+                ? Colors.green
+                : Colors.red,
+          ),
+        );
+
+        if (resultado.contains('sucesso')) {
+          Navigator.pop(context, true); // Volta e avisa que salvou
+        }
+      }
+    } catch (e) {
+      setState(() => _carregando = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   //-------------------------------------------------------------
@@ -64,92 +128,130 @@ class _cadastroProdutoState extends State<cadastroProduto> {
   //--------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("")),
-      body: SingleChildScrollView(
-        child: Form(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 10,
-            children: [
-              //---------------------------------------
-              //criar campos
-              //'codigo_barras': LeitorCódigoBarras
-              //'nome': TextFormField
-              //'categoria_id': DropdownButtonFormField
-              //'descricao': TextFormField não obrigatorio
-              //'imagem': SelecionarImagens não obrigatorio
-              //'marca': TextFormField não obrigatorio
-              //'peso': TextFormField não obrigatório
-              //sao iguais ao textformfield do codigo de barras
-              //---------------------------------------
+    final bool isEdicao = widget.produto != null;
+    final titulo = isEdicao ? 'Editar Produto' : 'Novo Produto';
 
-              //imagem
+    return Scaffold(
+      appBar: AppBar(title: Text(titulo), backgroundColor: Colors.deepPurple),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formkey,
+          child: Column(
+            children: [
               SeletorImagem(
-                imagemAtual: _imagemAtual,
+                imagemAtual: _imagemSelecionada,
+                imagemExistente: _imagemExistente,
                 quandoImagemSelecionada: (img) {
                   setState(() {
-                    _imagemAtual = img;
+                    _imagemSelecionada = img;
+                    _imagemExistente = null;
                   });
                 },
               ),
+              SizedBox(height: 12),
 
               TextFormField(
                 controller: _codigoBarrasController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.0),
                   ),
-                  suffixIcon: TextButton(
+                  suffix: TextButton(
                     onPressed: _lerCodigoBarras,
-                    child: Icon(Icons.qr_code_scanner),
+                    child: const Icon(Icons.qr_code_scanner),
                   ),
                   labelText: 'Codigo de Barras',
                 ),
-                keyboardType: TextInputType.number,
               ),
-              SizedBox(height: 8),
-              //-------------------------------
+              SizedBox(height: 12),
+
               TextFormField(
+                controller: _nomeController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.0),
                   ),
-                  labelText: 'Titulo do produto',
+                  labelText: 'Nome do Produto',
                 ),
-                keyboardType: TextInputType.text,
               ),
-              SizedBox(height: 8),
-              //---------------------------------
+              SizedBox(height: 12),
+
               TextFormField(
+                controller: _descricaoController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.0),
                   ),
-                  labelText: 'Descrição do produto',
+                  labelText: 'Descricao do Produto',
                 ),
-                keyboardType: TextInputType.text,
               ),
-              SizedBox(height: 8),
-              //---------------------------------
+              SizedBox(height: 12),
+              TextFormField(
+                controller: _marcaController,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  labelText: 'Marca',
+                ),
+              ),
+              SizedBox(height: 12),
+
               DropdownButtonFormField(
-                onChanged: (value) => {},
-                items: [
-                  DropdownMenuItem(value: '1', child: Text("Laticinios")),
-                  DropdownMenuItem(value: '2', child: Text("Chocolate")),
-                  DropdownMenuItem(value: '3', child: Text("Mercearia")),
-                  DropdownMenuItem(value: '4', child: Text("Açougue")),
+                initialValue: _categoriaSelecionada.toString(),
+                items: const [
+                  DropdownMenuItem(value: '1', child: Text('Eletrônicos')),
+                  DropdownMenuItem(value: '2', child: Text('Roupas')),
+                  DropdownMenuItem(value: '3', child: Text('Alimentos')),
                 ],
-                initialValue: '1',
-                decoration: InputDecoration(labelText: 'Categoria'),
+                decoration: InputDecoration(
+                  labelText: 'Categoria',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _categoriaSelecionada = value != null
+                        ? int.parse(value)
+                        : 1;
+                  });
+                },
               ),
+
+              const SizedBox(height: 16),
+              // Status (Switch)
+              SwitchListTile(
+                title: const Text('Produto Ativo'),
+                value: _status == 1,
+                onChanged: (value) {
+                  setState(() => _status = value ? 1 : 0);
+                },
+              ),
+
+              const SizedBox(height: 16.0),
+
               SizedBox(
+                height: 40,
                 width: double.infinity,
                 child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      side: const BorderSide(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
                   onPressed: () {
                     _cadastrarProduto();
                   },
-                  child: Text("Salvar"),
+
+                  child: _carregando
+                      ? const CircularProgressIndicator()
+                      : Text(
+                          isEdicao ? 'Atualizar' : 'Cadastrar',
+                          style: const TextStyle(fontSize: 16),
+                        ),
                 ),
               ),
             ],
