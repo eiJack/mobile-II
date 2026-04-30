@@ -25,13 +25,13 @@ class Produto {
     return Produto(
       id: json['id'] ?? 0,
       nome: json['nome'] ?? '',
-      categoria: json['categoria'] ?? 0,
+      categoria: json['categoria_id'] ?? 0,
       descricao: json['descricao'] ?? '',
       imagem: json['imagem'] ?? '',
       marca: json['marca'] ?? '',
       peso: json['peso'] ?? '',
-      codigoBarras: json['codigoBarras'] ?? '0',
-      status: json['status'] ?? 1,
+      codigoBarras: json['codigo_barras'] ?? '0',
+      status: json['ativo'] ?? 1,
     );
   }
 
@@ -39,13 +39,14 @@ class Produto {
     return {
       'id': id,
       'nome': nome,
-      'categoria': categoria,
+      'categoria_id': categoria,
       'descricao': descricao,
       'imagem': imagem,
       'marca': marca,
       'peso': peso,
-      'codigoBarras': codigoBarras,
-      'status': status,
+      'codigo_barras': codigoBarras,
+      'ativo': status,
     };
   }
 }
+
