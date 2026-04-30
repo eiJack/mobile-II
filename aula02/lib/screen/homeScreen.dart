@@ -67,6 +67,11 @@ class _HomescreenState extends State<Homescreen> {
             label: 'Perfil',
             backgroundColor: Colors.blue,
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.exit_to_app),
+            label: 'Sair',
+            backgroundColor: Colors.blue,
+          ),
         ],
       ),
     );
