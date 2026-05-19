@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:aula02/services/session_service.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -8,17 +10,51 @@ class PerfilScreen extends StatefulWidget {
 }
 
 class _PerfilScreenState extends State<PerfilScreen> {
-  // Informações da loja (exemplo)
-  String nomeLoja = "Loja Exemplo";
-  String email = "contato@lojaexemplo.com";
-  String telefone = "(11) 98765-4321";
-  String endereco = "Rua Exemplo, 123, Cidade, Estado";
+  // Informações da loja/usuario logado
+  String nomeLoja = "";
+  String email = "";
+  String telefone = "";
+  String endereco = "";
+  bool carregando = true;
+
+  //carregar usuario
+  @override
+  void initState() {
+    super.initState();
+    carregarUsuario();
+  }
+
+  //carregar usuario
+  Future<void> carregarUsuario() async {
+    try {
+      final usuarioString = await SessionService().obterUsuario();
+
+      print(usuarioString);
+
+      if (usuarioString.isNotEmpty) {
+        final usuario = jsonDecode(usuarioString);
+
+        setState(() {
+          nomeLoja = usuario['name'] ?? '';
+          email = usuario['email'] ?? '';
+          carregando = false;
+        });
+      } else {
+        setState(() {
+          carregando = false;
+        });
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false, // remove botão de voltar
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -28,7 +64,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
             CircleAvatar(
               radius: 50,
               backgroundColor: Colors.grey[300],
-              child: const Icon(Icons.store, size: 50, color: Colors.white),
+              backgroundImage: const NetworkImage('https://loremflickr.com/200/200/kitten',),
             ),
             const SizedBox(height: 16),
             Text(
@@ -40,17 +76,17 @@ class _PerfilScreenState extends State<PerfilScreen> {
             ListTile(
               leading: const Icon(Icons.email),
               title: const Text("Email"),
-              subtitle: Text(email),
+              subtitle: Text(email.isEmpty ? "Não informado" : email),
             ),
             ListTile(
               leading: const Icon(Icons.phone),
               title: const Text("Telefone"),
-              subtitle: Text(telefone),
+              subtitle: Text(telefone.isEmpty ? "Não informado" : telefone),
             ),
             ListTile(
               leading: const Icon(Icons.location_on),
               title: const Text("Endereço"),
-              subtitle: Text(endereco),
+              subtitle: Text(endereco.isEmpty ? "Não informado" : endereco),
             ),
             const Spacer(),
             // Botão de editar perfil
