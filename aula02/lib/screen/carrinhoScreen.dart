@@ -158,7 +158,7 @@ class _CarrinhoScreenState extends State<CarrinhoScreen> {
                   child: Column(
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Corrigido para espaçar os lados perfeitamente
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
                             "Total do Carrinho:",
