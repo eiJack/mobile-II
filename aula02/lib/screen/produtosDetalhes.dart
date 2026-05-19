@@ -5,9 +5,8 @@ import 'package:aula02/services/session_service.dart';
 
 class produtosDetalhes extends StatefulWidget {
   final int id;
-  final VoidCallback onVoltar;
 
-  const produtosDetalhes({super.key, required this.id, required this.onVoltar});
+  const produtosDetalhes({super.key, required this.id});
 
   @override
   State<produtosDetalhes> createState() => _produtosDetalhesState();
@@ -37,7 +36,9 @@ class _produtosDetalhesState extends State<produtosDetalhes> {
         title: const Text("Detalhes do Produto"),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: widget.onVoltar,
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
       ),
       body: FutureBuilder<Produto>(
