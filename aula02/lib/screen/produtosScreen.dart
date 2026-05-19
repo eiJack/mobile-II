@@ -14,18 +14,10 @@ class ProdutosScreen extends StatefulWidget {
 
 class _ProdutosScreenState extends State<ProdutosScreen> {
   //------------------------------------------------------
-  int? produtoSelecionado;
   final _service = ProdutosService();
   late Future<List<Produto>> _listaProdutos;
 
   @override
-  //void initState() {
-  //super.initState();
-  //setState(() {
-  //alterar estado de variavel
-  //_listaProdutos = listarProdutos();
-  //});
-  //}
   void initState() {
     super.initState();
     setState(() {
@@ -59,16 +51,6 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
   //------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    if (produtoSelecionado != null) {
-      return produtosDetalhes(
-        id: produtoSelecionado!,
-        onVoltar: () {
-          setState(() {
-            produtoSelecionado = null;
-          });
-        },
-      );
-    }
     return Scaffold(
       appBar: AppBar(
         title: Text("Lista de produtos"),
@@ -128,11 +110,14 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                       child: Icon(Icons.shopping_cart),
                     ), //esquerda do texto
                     trailing: Icon(Icons.arrow_forward), //direita do texto
-                    onTap: () => {
-                      //produtos_detalhes.dart produtos[index].id
-                      setState(() {
-                        produtoSelecionado = produtos[index].id;
-                      }),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              produtosDetalhes(id: produtos[index].id),
+                        ),
+                      );
                     },
                   ),
                 );
